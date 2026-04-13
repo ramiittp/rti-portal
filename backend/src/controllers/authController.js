@@ -5,6 +5,17 @@ const { createOTP, verifyOTP } = require('../services/otpService');
 const { sendOTPEmail } = require('../services/emailService');
 const { log } = require('../services/auditService');
 const { AppError } = require('../middleware/errorHandler');
+const logger = require('../utils/logger');
+
+const isOtpFallbackEnabled = () => {
+  const configured = process.env.OTP_FALLBACK_IN_RESPONSE;
+
+  if (configured === undefined) {
+    return process.env.NODE_ENV !== 'production';
+  }
+
+  return String(configured).toLowerCase() === 'true';
+};
 
 // POST /api/auth/send-otp
 const sendOtp = async (req, res, next) => {
@@ -23,7 +34,23 @@ const sendOtp = async (req, res, next) => {
 
     const user = rows[0];
     const otp = await createOTP(normalizedEmail, 'login', req.ip);
-    await sendOTPEmail(normalizedEmail, otp, user.full_name);
+
+    try {
+      await sendOTPEmail(normalizedEmail, otp, user.full_name);
+    } catch (emailErr) {
+      if (!isOtpFallbackEnabled()) {
+        throw emailErr;
+      }
+
+      logger.warn(`OTP email failed for ${normalizedEmail}; returning fallback OTP in response.`);
+      return res.json({
+        success: true,
+        message: 'Email service is unavailable. Showing OTP locally for development use.',
+        email: normalizedEmail,
+        otp,
+        fallback: 'local_alert',
+      });
+    }
 
     res.json({ success: true, message: 'OTP sent to your email address.', email: normalizedEmail });
   } catch (err) { next(err); }

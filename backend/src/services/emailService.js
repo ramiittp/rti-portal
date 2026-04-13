@@ -3,27 +3,47 @@ const logger = require('../utils/logger');
 
 let transporter;
 
+const getFromAddress = () => {
+  const fromName = process.env.SMTP_FROM_NAME || 'RTI Portal';
+  const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.EMAIL_FROM || process.env.SMTP_USER;
+
+  if (!fromEmail) {
+    const err = new Error('SMTP sender email is not configured. Set SMTP_FROM_EMAIL or EMAIL_FROM.');
+    err.statusCode = 503;
+    throw err;
+  }
+
+  return `"${fromName}" <${fromEmail}>`;
+};
+
 const getTransporter = () => {
   if (!transporter) {
+    const host = process.env.SMTP_HOST;
+    const port = parseInt(process.env.SMTP_PORT || '587', 10);
+    const user = process.env.SMTP_USER;
+    const pass = process.env.SMTP_PASS;
+
+    if (!host || !user || !pass) {
+      const err = new Error('SMTP is not fully configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS.');
+      err.statusCode = 503;
+      throw err;
+    }
+
     transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT || '587'),
+      host,
+      port,
       secure: process.env.SMTP_PORT === '465',
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      auth: { user, pass },
     });
   }
+
   return transporter;
 };
 
 const send = async ({ to, subject, html, text }) => {
   try {
-    if (process.env.NODE_ENV === 'development') {
-      logger.debug(`[EMAIL DEV] To: ${to} | Subject: ${subject}`);
-      logger.debug(`[EMAIL DEV] Body: ${text || html}`);
-      return { messageId: 'dev-mode' };
-    }
     const info = await getTransporter().sendMail({
-      from: `"RTI Portal" <${process.env.EMAIL_FROM}>`,
+      from: getFromAddress(),
       to, subject, html, text,
     });
     logger.info(`Email sent to ${to}: ${info.messageId}`);

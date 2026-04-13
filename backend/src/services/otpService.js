@@ -27,7 +27,7 @@ const createOTP = async (email, purpose = 'login', ipAddress = null) => {
     [uuidv4(), email, hash, purpose, expiresAt, ipAddress]
   );
 
-  logger.debug(`OTP created for ${email} [${purpose}]`);
+  logger.debug(`OTP ${otp} created for ${email} [${purpose}]`);
   return otp;
 };
 
