@@ -10,6 +10,28 @@ import CitizenLoginPage from './pages/auth/CitizenLoginPage.jsx';
 import DashboardPage from './pages/citizen/DashboardPage.jsx';
 import ApplicationsPage from './pages/citizen/ApplicationsPage.jsx';
 import ApplicationDetailPage from './pages/citizen/ApplicationDetailPage.jsx';
+import AdminHomePage from './pages/admin/AdminHomePage.jsx';
+import AdminLayout from './components/admin/AdminLayout.jsx'; // only if you want nested routing later
+import AdminRequestsPage from './pages/admin/AdminRequestsPage.jsx';
+import AdminRequestDetailPage from './pages/admin/AdminRequestDetailPage.jsx';
+
+// function AdminRoute({ children }) {
+//   const { user, initializing } = useAuth();
+//   if (initializing) return <div>Loading…</div>;
+//   if (!user) return <Navigate to="/login" replace />;
+//   if (!user.role || !['admin', 'cpio', 'nodal_officer', 'faa'].includes(user.role)) {
+//     return <Navigate to="/dashboard" replace />;
+//   }
+//   return children;
+// }
+
+function AdminRoute({ children }) {
+  const { user, initializing } = useAuth();
+  if (initializing) return <div>Loading…</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  // TEMP: allow any logged-in user to access admin UI for testing
+  return children;
+}
 
 function PrivateRoute({ children }) {
   const { user, initializing } = useAuth();
@@ -85,7 +107,38 @@ export default function App() {
             </PrivateRoute>
           }
         />
-      </Routes>
+        </Routes>
+        <Routes>
+
+          {/* admin routes ... */}
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminHomePage />
+              </AdminRoute>
+            }
+          />
+
+          {/* later we’ll add /admin/requests etc. */}
+          <Route
+            path="/admin/requests"
+            element={
+              <AdminRoute>
+                <AdminRequestsPage />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/admin/requests/:id"
+            element={
+              <AdminRoute>
+                <AdminRequestDetailPage />
+              </AdminRoute>
+            }
+          />
+        </Routes>
+      
       <Toaster position="top-right" />
     </>
   );

@@ -29,4 +29,16 @@ const authorize = (...roles) => (req, res, next) => {
   next();
 };
 
-module.exports = { authenticate, authorize };
+function authRequired(req, res, next) {
+  // your JWT logic here, for now you can even just allow all:
+  // console.log('authRequired stub');
+  // next();
+
+  const auth = req.headers.authorization || '';
+  const [, token] = auth.split(' ');
+  if (!token) return res.status(401).json({ message: 'Unauthorized' });
+  // TODO: verify JWT properly
+  next();
+}
+
+module.exports = { authenticate, authorize, authRequired };
