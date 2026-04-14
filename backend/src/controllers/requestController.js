@@ -202,15 +202,20 @@ const trackByRegNumber = async (req, res, next) => {
 // GET /api/requests/summary — get citizen request summary
 const getSummary = async (req, res, next) => {
   try {
+    // Count appeals from appeals table for this citizen
     const { rows } = await db.query(`
       SELECT 
         COUNT(*) AS total_requests,
-        COUNT(*) FILTER (WHERE status = 'replied' OR status = 'rejected') AS answered,
-        COUNT(*) FILTER (WHERE status IN ('draft', 'submitted', 'payment_pending', 'under_review', 'under_process', 'assigned', 'transferred', 'additional_fee_pending')) AS pending,
-        COUNT(*) FILTER (WHERE status = 'appealed') AS appeals
+        COUNT(*) FILTER (WHERE status IN ('replied', 'rejected', 'closed')) AS answered,
+        COUNT(*) FILTER (WHERE status IN ('draft', 'submitted', 'payment_pending', 'payment_done', 'under_process', 'assigned', 'transferred', 'additional_fee_pending', 'additional_fee_paid', 'info_requested')) AS pending
       FROM rti_requests
       WHERE citizen_id = $1
     `, [req.user.id]);
+
+    const { rows: appealRows } = await db.query(
+      `SELECT COUNT(*) AS appeals FROM appeals WHERE appellant_id = $1`,
+      [req.user.id]
+    );
 
     const summary = rows[0];
     res.json({ 
@@ -219,7 +224,7 @@ const getSummary = async (req, res, next) => {
         total_requests: parseInt(summary?.total_requests || 0),
         answered: parseInt(summary?.answered || 0),
         pending: parseInt(summary?.pending || 0),
-        appeals: parseInt(summary?.appeals || 0)
+        appeals: parseInt(appealRows[0]?.appeals || 0)
       } 
     });
   } catch (err) { 

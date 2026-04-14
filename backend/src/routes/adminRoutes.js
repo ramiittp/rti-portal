@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const { v4: uuidv4 } = require('uuid');
 
 // Comment this out for now
 // const { authenticate } = require('../middleware/auth');
@@ -126,7 +127,6 @@ router.put('/requests/:id/deadline', async (req, res) => {
 });
 
 // Internal notes / comments
-const { v4: uuidv4 } = require('uuid');
 router.post('/requests/:id/notes', async (req, res) => {
   try {
     const { id } = req.params;
@@ -164,29 +164,135 @@ router.put('/requests/:id/quality', async (req, res) => {
   }
 });
 
+// GET /api/admin/authorities — list all active authorities (for transfer dropdown)
+router.get('/authorities', async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      `SELECT id, name, city, state, cpio_name, cpio_email FROM public_authorities WHERE is_active = true ORDER BY name ASC`
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('Error fetching authorities:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+// GET /api/admin/cpios — list users with role cpio (for assign dropdown)
+router.get('/cpios', async (req, res) => {
+  try {
+    const { authority_id } = req.query;
+    const params = [];
+    let where = `WHERE role = 'cpio' AND is_active = true`;
+    if (authority_id) {
+      where += ` AND authority_id = $1`;
+      params.push(authority_id);
+    }
+    const { rows } = await db.query(
+      `SELECT id, full_name, email, authority_id FROM users ${where} ORDER BY full_name ASC`,
+      params
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('Error fetching CPIOs:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+// PUT /api/admin/requests/:id/assign — Nodal Officer assigns to CPIO
+router.put('/requests/:id/assign', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { cpio_id } = req.body;
+    if (!cpio_id) return res.status(400).json({ success: false, message: 'cpio_id is required' });
+
+    const { rows } = await db.query(
+      `UPDATE rti_requests SET assigned_cpio_id = $1, status = 'assigned', updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [cpio_id, id]
+    );
+    if (!rows[0]) return res.status(404).json({ success: false, message: 'Request not found' });
+
+    // Record in audit log
+    await db.query(
+      `INSERT INTO audit_log (id, entity_type, entity_id, action, new_value, created_at) VALUES ($1,'rti_request',$2,'ASSIGN_CPIO',$3,NOW())`,
+      [uuidv4(), id, JSON.stringify({ cpio_id })]
+    );
+
+    res.json({ success: true, data: rows[0], message: 'Request assigned to CPIO' });
+  } catch (err) {
+    console.error('Error assigning CPIO:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+// PUT /api/admin/requests/:id/transfer — Transfer to another authority
+router.put('/requests/:id/transfer', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { to_authority_id, reason } = req.body;
+    if (!to_authority_id || !reason)
+      return res.status(400).json({ success: false, message: 'to_authority_id and reason are required' });
+
+    const { rows: reqRows } = await db.query(`SELECT * FROM rti_requests WHERE id = $1`, [id]);
+    if (!reqRows[0]) return res.status(404).json({ success: false, message: 'Request not found' });
+    if (reqRows[0].transfer_count >= 1)
+      return res.status(400).json({ success: false, message: 'RTI Act allows only one transfer per request' });
+
+    // Record transfer
+    await db.query(
+      `INSERT INTO request_transfers (id, request_id, from_authority_id, to_authority_id, reason, transferred_at) VALUES ($1,$2,$3,$4,$5,NOW())`,
+      [uuidv4(), id, reqRows[0].authority_id, to_authority_id, reason]
+    );
+
+    // Update request
+    const { rows } = await db.query(
+      `UPDATE rti_requests SET authority_id = $1, status = 'transferred', transfer_count = transfer_count + 1,
+       deadline_date = (NOW() + INTERVAL '30 days')::DATE, updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [to_authority_id, id]
+    );
+
+    await db.query(
+      `INSERT INTO audit_log (id, entity_type, entity_id, action, old_value, new_value, created_at) VALUES ($1,'rti_request',$2,'TRANSFER',$3,$4,NOW())`,
+      [uuidv4(), id, JSON.stringify({ authority_id: reqRows[0].authority_id }), JSON.stringify({ authority_id: to_authority_id, reason })]
+    );
+
+    res.json({ success: true, data: rows[0], message: 'Request transferred successfully' });
+  } catch (err) {
+    console.error('Error transferring request:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+// POST /api/admin/requests/:id/additional-fee — Raise additional fee request
+router.post('/requests/:id/additional-fee', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, reason, deadline } = req.body;
+    if (!amount || !reason || !deadline)
+      return res.status(400).json({ success: false, message: 'amount, reason, and deadline are required' });
+
+    const { rows: reqRows } = await db.query(`SELECT * FROM rti_requests WHERE id = $1`, [id]);
+    if (!reqRows[0]) return res.status(404).json({ success: false, message: 'Request not found' });
+
+    const { rows } = await db.query(
+      `INSERT INTO additional_fee_requests (id, request_id, amount, reason, deadline) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [uuidv4(), id, amount, reason, deadline]
+    );
+
+    await db.query(
+      `UPDATE rti_requests SET status = 'additional_fee_pending', updated_at = NOW() WHERE id = $1`,
+      [id]
+    );
+
+    await db.query(
+      `INSERT INTO audit_log (id, entity_type, entity_id, action, new_value, created_at) VALUES ($1,'rti_request',$2,'ADDITIONAL_FEE_RAISED',$3,NOW())`,
+      [uuidv4(), id, JSON.stringify({ amount, reason, deadline })]
+    );
+
+    res.json({ success: true, data: rows[0], message: 'Additional fee request raised' });
+  } catch (err) {
+    console.error('Error raising additional fee:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
 module.exports = router;
-
-
-
-
-
-// const express = require('express');
-// const { authRequired } = require('../middleware/auth.js');
-
-// const router = express.Router();
-
-// router.use(authRequired);
-
-// router.get('/requests', (req, res) => {
-//   const demo = [
-//     {
-//       id: 'demo-1',
-//       registration_number: 'RTI/2026/000001',
-//       subject: 'Demo RTI about hostel facilities',
-//       status: 'under_process',
-//     },
-//   ];
-//   res.json({ data: demo });
-// });
-
-// module.exports = router;
