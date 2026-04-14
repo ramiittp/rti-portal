@@ -4,17 +4,28 @@ import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/AuthContext';
 import NewRTIPage from './pages/citizen/NewRTI.jsx';
 import AppealPage from './pages/citizen/AppealPage.jsx';
-import TrackPage from './pages/citizen/TrackPage.jsx';
+import PublicTrackPage from './pages/citizen/PublicTrackPage.jsx';
 import ProfilePage from './pages/citizen/ProfilePage.jsx';
-// TODO: add Dashboard, ApplicationsList, Login, etc.
-import LoginPage from './pages/auth/LoginPage.jsx';
+import CitizenLoginPage from './pages/auth/CitizenLoginPage.jsx';
 import DashboardPage from './pages/citizen/DashboardPage.jsx';
 import ApplicationsPage from './pages/citizen/ApplicationsPage.jsx';
 import ApplicationDetailPage from './pages/citizen/ApplicationDetailPage.jsx';
 
 function PrivateRoute({ children }) {
   const { user, initializing } = useAuth();
-  if (initializing) return <div>Loading…</div>;
+
+  if (initializing) {
+    return (
+      <div className="public-shell">
+        <div className="status-panel">
+          <span className="eyebrow">Preparing Portal</span>
+          <h1>Loading your citizen workspace</h1>
+          <p>We are checking your session and getting your dashboard ready.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) return <Navigate to="/login" replace />;
   return children;
 }
@@ -23,8 +34,8 @@ export default function App() {
   return (
     <>
       <Routes>
-        <Route path="/" element={<TrackPage />} />
-        <Route path="/track" element={<TrackPage />} />
+        <Route path="/" element={<PublicTrackPage />} />
+        <Route path="/track" element={<PublicTrackPage />} />
         <Route
           path="/new-rti"
           element={
@@ -49,8 +60,6 @@ export default function App() {
             </PrivateRoute>
           }
         />
-        {/* placeholders until you add them */}
-        {/* <Route path="/dashboard" element={<div>Dashboard TODO</div>} /> */}
         <Route
           path="/dashboard"
           element={
@@ -59,9 +68,7 @@ export default function App() {
             </PrivateRoute>
           }
         />
-        {/* <Route path="/applications" element={<div>Applications TODO</div>} /> */}
-        {/* <Route path="/login" element={<div>Login TODO (OTP)</div>} /> */}
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<CitizenLoginPage />} />
         <Route
           path="/applications"
           element={

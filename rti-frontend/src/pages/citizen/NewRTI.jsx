@@ -78,7 +78,7 @@ export default function NewRTIPage() {
         toast.success('Draft saved! Proceeding to payment.');
         navigate(`/applications/${draftId}`);
       } else {
-        toast.success('Application submitted successfully! (BPL — no fee required)');
+        toast.success('Application submitted successfully. No fee is required for BPL filing.');
         navigate('/applications');
       }
     } catch (err) {
@@ -90,14 +90,20 @@ export default function NewRTIPage() {
 
   return (
     <Layout>
-      <div className="page-header">
+      <div className="hero-card">
         <div>
-          <h1 className="page-title">File New RTI Application</h1>
-          <p className="page-subtitle">Under Right to Information Act, 2005</p>
+          <h1 className="hero-card__title">File New RTI Application</h1>
+          <p className="hero-card__text">
+            Choose the right public authority, draft a precise request, and
+            review everything before you submit.
+          </p>
+        </div>
+        <div className="hero-card__meta">
+          <span className="meta-chip">3 guided steps</span>
+          <span className="meta-chip">BPL fee waiver supported</span>
         </div>
       </div>
 
-      {/* Stepper */}
       <div className="stepper">
         {STEPS.map((s, i) => (
           <React.Fragment key={s}>
@@ -106,9 +112,7 @@ export default function NewRTIPage() {
                 i === step ? 'stepper__step--active' : ''
               } ${i < step ? 'stepper__step--done' : ''}`}
             >
-              <div className="stepper__circle">
-                {i < step ? '✓' : i + 1}
-              </div>
+              <div className="stepper__circle">{i < step ? 'OK' : i + 1}</div>
               <span>{s}</span>
             </div>
             {i < STEPS.length - 1 && <div className="stepper__line" />}
@@ -116,15 +120,14 @@ export default function NewRTIPage() {
         ))}
       </div>
 
-      {/* Step 0: Authority */}
       {step === 0 && (
         <div className="card fade-in">
           <div className="card__header">
             <h2 className="card__title">Select Public Authority</h2>
           </div>
-          <div style={{ padding: '0 0 20px' }}>
+          <div className="card__body" style={{ paddingTop: 0 }}>
             <div className="form-group">
-              <label>Search Authority by name, city or state</label>
+              <label>Search authority by name, city, or state</label>
               <div style={{ position: 'relative' }}>
                 <Search
                   size={16}
@@ -137,7 +140,7 @@ export default function NewRTIPage() {
                 />
                 <input
                   type="text"
-                  placeholder="e.g. IIT, AIIMS, RBI, UGC…"
+                  placeholder="e.g. IIT, AIIMS, RBI, UGC"
                   style={{ paddingLeft: 34 }}
                   value={authSearch}
                   onChange={(e) => setAuthSearch(e.target.value)}
@@ -160,28 +163,21 @@ export default function NewRTIPage() {
                       setSelectedAuthority(a);
                     }}
                     className={`authority-card ${
-                      selectedAuthority?.id === a.id
-                        ? 'authority-card--selected'
-                        : ''
+                      selectedAuthority?.id === a.id ? 'authority-card--selected' : ''
                     }`}
                   >
                     <div>
                       <strong>{a.name}</strong>
                       <p>
-                        {a.department_name} · {a.ministry_name}
+                        {a.department_name} | {a.ministry_name}
                       </p>
                       <span>
                         {a.city}, {a.state}
                       </span>
                     </div>
                     {selectedAuthority?.id === a.id && (
-                      <span
-                        style={{
-                          color: 'var(--color-primary)',
-                          fontWeight: 700,
-                        }}
-                      >
-                        ✓
+                      <span style={{ color: 'var(--color-primary)', fontWeight: 700 }}>
+                        Selected
                       </span>
                     )}
                   </div>
@@ -189,24 +185,17 @@ export default function NewRTIPage() {
               </div>
             )}
             {authSearch.length >= 2 && !authorities?.length && (
-              <p
-                style={{
-                  fontSize: 13,
-                  color: 'var(--color-text-muted)',
-                  marginTop: 8,
-                }}
-              >
+              <p className="section-note" style={{ marginTop: 8 }}>
                 No authorities found. Try a different search.
               </p>
             )}
             {selectedAuthority && (
               <div className="selected-authority-banner">
-                <strong>Selected:</strong> {selectedAuthority.name} —{' '}
-                {selectedAuthority.city}
+                <strong>Selected:</strong> {selectedAuthority.name} - {selectedAuthority.city}
               </div>
             )}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 1.2rem 1.2rem' }}>
             <button
               className="btn btn-primary"
               disabled={!selectedAuthority}
@@ -218,29 +207,13 @@ export default function NewRTIPage() {
         </div>
       )}
 
-      {/* Step 1: Draft */}
       {step === 1 && (
-        <div
-          className="fade-in"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 280px',
-            gap: 20,
-            alignItems: 'start',
-          }}
-        >
+        <div className="split-layout fade-in">
           <form className="card" onSubmit={handleSubmit(onSaveDraft)}>
             <div className="card__header">
               <h2 className="card__title">Draft Your Application</h2>
             </div>
-            <div
-              style={{
-                padding: '0 0 20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 18,
-              }}
-            >
+            <div className="card__body" style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div className="form-group">
                 <label>Subject *</label>
                 <input
@@ -251,28 +224,19 @@ export default function NewRTIPage() {
                     maxLength: { value: 500, message: 'Max 500 chars' },
                   })}
                 />
-                {errors.subject && (
-                  <span className="form-error">
-                    {errors.subject.message}
-                  </span>
-                )}
+                {errors.subject && <span className="form-error">{errors.subject.message}</span>}
               </div>
               <div className="form-group">
                 <label>
                   Information Sought *{' '}
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: 'var(--color-text-muted)',
-                    }}
-                  >
+                  <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
                     (be specific and precise)
                   </span>
                 </label>
                 <textarea
                   rows={6}
                   placeholder={
-                    '1. List the specific information you seek\n2. Mention dates, document names, amounts etc.'
+                    '1. List the specific information you seek\n2. Mention dates, document names, amounts, and periods clearly.'
                   }
                   {...register('information_sought', {
                     required: 'Please describe the information sought',
@@ -280,37 +244,24 @@ export default function NewRTIPage() {
                   style={{ resize: 'vertical' }}
                 />
                 {errors.information_sought && (
-                  <span className="form-error">
-                    {errors.information_sought.message}
-                  </span>
+                  <span className="form-error">{errors.information_sought.message}</span>
                 )}
               </div>
               <div className="form-group">
                 <label>
                   Description{' '}
-                  <span
-                    style={{
-                      fontSize: 11,
-                      color: 'var(--color-text-muted)',
-                    }}
-                  >
+                  <span style={{ fontSize: 11, color: 'var(--color-text-muted)' }}>
                     (optional background)
                   </span>
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Any context or background that helps the CPIO understand your request"
+                  placeholder="Any context that helps the CPIO understand your request"
                   {...register('description')}
                   style={{ resize: 'vertical' }}
                 />
               </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 16,
-                }}
-              >
+              <div className="form-grid">
                 <div className="form-group">
                   <label>Period From</label>
                   <input type="date" {...register('period_from')} />
@@ -320,13 +271,7 @@ export default function NewRTIPage() {
                   <input type="date" {...register('period_to')} />
                 </div>
               </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 16,
-                }}
-              >
+              <div className="form-grid">
                 <div className="form-group">
                   <label>Preferred Response Mode</label>
                   <select {...register('preferred_response_mode')}>
@@ -338,54 +283,37 @@ export default function NewRTIPage() {
                 <div className="form-group">
                   <label>BPL Card Holder?</label>
                   <select {...register('is_bpl')}>
-                    <option value="false">No — Pay ₹10 fee</option>
-                    <option value="true">Yes — Fee waived</option>
+                    <option value="false">No - Pay Rs. 10 fee</option>
+                    <option value="true">Yes - Fee waived</option>
                   </select>
                 </div>
               </div>
             </div>
-            <div
-              style={{
-                display: 'flex',
-                gap: 10,
-                justifyContent: 'space-between',
-              }}
-            >
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setStep(0)}
-              >
-                ← Back
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between', padding: '0 1.2rem 1.2rem' }}>
+              <button type="button" className="btn btn-secondary" onClick={() => setStep(0)}>
+                Back
               </button>
               <button type="submit" className="btn btn-primary">
-                Preview & Submit →
+                Preview and Submit
               </button>
             </div>
           </form>
 
-          {/* Templates sidebar */}
           <div className="card">
             <div className="card__header">
               <h2 className="card__title" style={{ fontSize: 13 }}>
                 Use a Template
               </h2>
             </div>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-                paddingBottom: 16,
-              }}
-            >
+            <div className="card__body" style={{ paddingTop: 0 }}>
+              <p className="section-note" style={{ marginBottom: 12 }}>
+                Templates help you begin with a clear subject and information request.
+              </p>
               {templates?.map((t) => (
                 <div
                   key={t.id}
                   className={`template-card ${
-                    selectedTemplate?.id === t.id
-                      ? 'template-card--selected'
-                      : ''
+                    selectedTemplate?.id === t.id ? 'template-card--selected' : ''
                   }`}
                   onClick={() => applyTemplate(t)}
                 >
@@ -393,92 +321,72 @@ export default function NewRTIPage() {
                   <span>{t.category}</span>
                 </div>
               ))}
+              {!templates?.length && (
+                <div className="state-panel">
+                  <div className="state-panel__title">No templates available</div>
+                  <p className="state-panel__text">
+                    You can still continue by drafting your RTI request manually.
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Step 2: Review */}
       {step === 2 && (
         <div className="card fade-in">
           <div className="card__header">
             <h2 className="card__title">Review Your Application</h2>
           </div>
-          <div className="detail-list" style={{ marginBottom: 20 }}>
-            <div className="detail-row">
-              <span>Authority</span>
-              <strong>{selectedAuthority?.name}</strong>
+          <div className="card__body">
+            <div className="detail-list" style={{ marginBottom: 20 }}>
+              <div className="detail-row">
+                <span>Authority</span>
+                <strong>{selectedAuthority?.name}</strong>
+              </div>
+              <div className="detail-row">
+                <span>Subject</span>
+                <strong>{watch('subject')}</strong>
+              </div>
+              <div className="detail-row">
+                <span>Fee</span>
+                <strong>{watch('is_bpl') === 'true' ? 'Waived (BPL)' : 'Rs. 10 (Online)'}</strong>
+              </div>
             </div>
-            <div className="detail-row">
-              <span>Subject</span>
-              <strong>{watch('subject')}</strong>
-            </div>
-            <div className="detail-row">
-              <span>Fee</span>
-              <strong>
-                {watch('is_bpl') === 'true'
-                  ? 'Waived (BPL)'
-                  : '₹10 (Online)'}
-              </strong>
-            </div>
-          </div>
-          <div
-            style={{
-              background: 'var(--color-bg)',
-              borderRadius: 8,
-              padding: '14px 16px',
-              marginBottom: 20,
-            }}
-          >
-            <p
+            <div
               style={{
-                fontSize: 13,
-                fontWeight: 600,
-                marginBottom: 8,
+                background: 'var(--color-bg)',
+                borderRadius: 8,
+                padding: '14px 16px',
+                marginBottom: 20,
               }}
             >
-              Information Sought:
-            </p>
-            <pre
-              style={{
-                fontSize: 13,
-                lineHeight: 1.7,
-                whiteSpace: 'pre-wrap',
-                fontFamily: 'inherit',
-                color: 'var(--color-text)',
-              }}
-            >
-              {watch('information_sought')}
-            </pre>
-          </div>
-          <div
-            className="info-box info-box--warning"
-            style={{ marginBottom: 20 }}
-          >
-            <strong>Important:</strong> Once submitted, the CPIO has{' '}
-            <strong>30 days</strong> to respond. You will receive a
-            confirmation email with your registration number.
-          </div>
-          <div
-            style={{
-              display: 'flex',
-              gap: 10,
-              justifyContent: 'space-between',
-            }}
-          >
-            <button
-              className="btn btn-secondary"
-              onClick={() => setStep(1)}
-            >
-              ← Edit Application
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={onSubmit}
-              disabled={submitting}
-            >
-              {submitting ? 'Submitting…' : '✓ Submit Application'}
-            </button>
+              <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>Information Sought:</p>
+              <pre
+                style={{
+                  fontSize: 13,
+                  lineHeight: 1.7,
+                  whiteSpace: 'pre-wrap',
+                  fontFamily: 'inherit',
+                  color: 'var(--color-text)',
+                }}
+              >
+                {watch('information_sought')}
+              </pre>
+            </div>
+            <div className="info-box info-box--warning" style={{ marginBottom: 20 }}>
+              <strong>Important:</strong> Once submitted, the CPIO has <strong>30 days</strong>{' '}
+              to respond. You will receive a confirmation email with your registration number.
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'space-between' }}>
+              <button className="btn btn-secondary" onClick={() => setStep(1)}>
+                Edit Application
+              </button>
+              <button className="btn btn-primary" onClick={onSubmit} disabled={submitting}>
+                {submitting ? 'Submitting...' : 'Submit Application'}
+              </button>
+            </div>
           </div>
         </div>
       )}

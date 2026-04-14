@@ -1,6 +1,6 @@
 const db = require('../config/database');
 const { createOrder, verifyAndCapture, markOfflinePayment } = require('../services/paymentService');
-const { sendSubmissionConfirmation } = require('../services/emailService');
+const { sendSubmissionConfirmation, ignoreNonCriticalEmailFailure } = require('../services/emailService');
 const { create: createNotification } = require('../services/notificationService');
 const { log } = require('../services/auditService');
 const { AppError } = require('../middleware/errorHandler');
@@ -39,7 +39,11 @@ const verifyPayment = async (req, res, next) => {
       [result.payment.request_id]
     );
     if (rows[0]) {
-      await sendSubmissionConfirmation(rows[0].email, rows[0].full_name, rows[0].registration_number, rows[0].authority_name, rows[0].deadline_date);
+      try {
+        await sendSubmissionConfirmation(rows[0].email, rows[0].full_name, rows[0].registration_number, rows[0].authority_name, rows[0].deadline_date);
+      } catch (emailErr) {
+        ignoreNonCriticalEmailFailure(emailErr, 'Payment confirmation email');
+      }
       await createNotification(req.user.id, 'Payment Successful', `Payment received. Application ref: ${rows[0].registration_number}`, 'rti_request', result.payment.request_id);
     }
 

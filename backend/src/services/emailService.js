@@ -3,6 +3,24 @@ const logger = require('../utils/logger');
 
 let transporter;
 
+const shouldIgnoreNonCriticalEmailFailures = () => {
+  const configured = process.env.NON_CRITICAL_EMAIL_FAILURES;
+
+  if (configured === undefined) {
+    return process.env.NODE_ENV !== 'production';
+  }
+
+  return String(configured).toLowerCase() === 'true';
+};
+
+const ignoreNonCriticalEmailFailure = (err, context = 'Email notification') => {
+  if (!shouldIgnoreNonCriticalEmailFailures()) {
+    throw err;
+  }
+
+  logger.warn(`${context} skipped because email is unavailable: ${err.message}`);
+};
+
 const getFromAddress = () => {
   const fromName = process.env.SMTP_FROM_NAME || 'RTI Portal';
   const fromEmail = process.env.SMTP_FROM_EMAIL || process.env.EMAIL_FROM || process.env.SMTP_USER;
@@ -122,4 +140,10 @@ const sendAdditionalFeeNotice = (email, name, regNumber, amount, reason, deadlin
       </div>`,
   });
 
-module.exports = { sendOTPEmail, sendSubmissionConfirmation, sendStatusUpdate, sendAdditionalFeeNotice };
+module.exports = {
+  sendOTPEmail,
+  sendSubmissionConfirmation,
+  sendStatusUpdate,
+  sendAdditionalFeeNotice,
+  ignoreNonCriticalEmailFailure,
+};

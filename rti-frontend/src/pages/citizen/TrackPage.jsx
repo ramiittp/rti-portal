@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Search } from 'lucide-react';
 import StatusBadge from '../../components/common/StatusBadge';
 import api from '../../utils/api';
@@ -30,74 +31,41 @@ export default function TrackPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'var(--color-bg)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-      }}
-    >
-      <div style={{ maxWidth: 520, width: '100%' }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <svg
-            width="48"
-            height="48"
-            viewBox="0 0 32 32"
-            fill="none"
-            style={{ margin: '0 auto 12px' }}
-          >
-            <rect
-              width="32"
-              height="32"
-              rx="8"
-              fill="var(--color-primary)"
-            />
-            <path
-              d="M8 8h10a6 6 0 010 12H8V8z"
-              fill="white"
-              opacity="0.9"
-            />
-            <rect
-              x="8"
-              y="14"
-              width="16"
-              height="2.5"
-              rx="1.25"
-              fill="white"
-            />
-          </svg>
-          <h1
-            style={{
-              fontFamily: 'var(--font-display)',
-              fontStyle: 'italic',
-              fontSize: 26,
-              marginBottom: 6,
-            }}
-          >
-            RTI Portal
-          </h1>
-          <p
-            style={{
-              color: 'var(--color-text-muted)',
-              fontSize: 14,
-            }}
-          >
-            Track your application status
-          </p>
-        </div>
-        <div
-          style={{
-            background: 'white',
-            borderRadius: 12,
-            border: '1px solid var(--color-border)',
-            padding: 32,
-            boxShadow: 'var(--shadow-md)',
-          }}
-        >
+    <div className="public-shell">
+      <div className="public-card">
+        <section className="public-card__hero">
+          <div>
+            <span className="eyebrow">Public Tracking</span>
+            <h1>Check the status of any RTI application instantly.</h1>
+            <p>
+              Enter your registration number to view the latest status,
+              authority, submission date, and response deadline without logging in.
+            </p>
+          </div>
+          <div className="public-card__hero-list">
+            <div className="public-card__hero-item">
+              <strong>01</strong>
+              <span>Track by registration number at any time.</span>
+            </div>
+            <div className="public-card__hero-item">
+              <strong>02</strong>
+              <span>See the current status and upcoming deadline clearly.</span>
+            </div>
+            <div className="public-card__hero-item">
+              <strong>03</strong>
+              <span>Login later to open full details, payments, and appeals.</span>
+            </div>
+          </div>
+        </section>
+        <section className="public-card__content">
+          <div style={{ marginBottom: 20 }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 34, marginBottom: 8 }}>
+              Track Application Status
+            </h2>
+            <p style={{ color: 'var(--color-text-muted)', fontSize: 14 }}>
+              Use the reference number issued after submission.
+            </p>
+          </div>
           <form onSubmit={handleTrack}>
             <div className="form-group" style={{ marginBottom: 16 }}>
               <label>Registration Number</label>

@@ -1,6 +1,6 @@
 const { v4: uuidv4 } = require('uuid');
 const db = require('../config/database');
-const { sendSubmissionConfirmation, sendStatusUpdate } = require('../services/emailService');
+const { sendSubmissionConfirmation, ignoreNonCriticalEmailFailure } = require('../services/emailService');
 const { create: createNotification } = require('../services/notificationService');
 const { log } = require('../services/auditService');
 const { AppError } = require('../middleware/errorHandler');
@@ -83,11 +83,15 @@ const submitRequest = async (req, res, next) => {
         `UPDATE rti_requests SET status='submitted' WHERE id=$1`,
         [id]
       );
-      await sendSubmissionConfirmation(
-        request.email, request.full_name,
-        updated[0].registration_number, request.authority_name,
-        updated[0].deadline_date
-      );
+      try {
+        await sendSubmissionConfirmation(
+          request.email, request.full_name,
+          updated[0].registration_number, request.authority_name,
+          updated[0].deadline_date
+        );
+      } catch (emailErr) {
+        ignoreNonCriticalEmailFailure(emailErr, 'Submission confirmation email');
+      }
       await createNotification(req.user.id, 'Application Submitted', `Your application has been submitted. Ref: ${updated[0].registration_number}`, 'rti_request', id);
     }
 

@@ -1,5 +1,5 @@
 const db = require('../config/database');
-const { sendStatusUpdate, sendAdditionalFeeNotice } = require('../services/emailService');
+const { sendStatusUpdate, sendAdditionalFeeNotice, ignoreNonCriticalEmailFailure } = require('../services/emailService');
 const { create: createNotification } = require('../services/notificationService');
 const { log } = require('../services/auditService');
 const { createOrder } = require('../services/paymentService');
@@ -62,7 +62,11 @@ const replyRequest = async (req, res, next) => {
     );
     if (!rows[0]) return next(new AppError('Request not found or not assigned to you.', 404));
 
-    await sendStatusUpdate(rows[0].citizen_email, rows[0].citizen_name, rows[0].registration_number, status, response_text.substring(0, 200) + '...');
+    try {
+      await sendStatusUpdate(rows[0].citizen_email, rows[0].citizen_name, rows[0].registration_number, status, response_text.substring(0, 200) + '...');
+    } catch (emailErr) {
+      ignoreNonCriticalEmailFailure(emailErr, 'Status update email');
+    }
     await createNotification(rows[0].citizen_id, 'Application Replied', `Your RTI ${rows[0].registration_number} has received a response.`, 'rti_request', req.params.id);
     await log('rti_request', req.params.id, 'REPLY', req.user.id, null, { status, response_text: response_text.substring(0, 100) }, req);
 
@@ -116,7 +120,11 @@ const raiseAdditionalFee = async (req, res, next) => {
       [uuidv4(), req.params.id, req.user.id, amount, reason, deadline]
     );
     await db.query(`UPDATE rti_requests SET status='additional_fee_pending', updated_at=NOW() WHERE id=$1`, [req.params.id]);
-    await sendAdditionalFeeNotice(reqRows[0].email, reqRows[0].full_name, reqRows[0].registration_number, amount, reason, deadline);
+    try {
+      await sendAdditionalFeeNotice(reqRows[0].email, reqRows[0].full_name, reqRows[0].registration_number, amount, reason, deadline);
+    } catch (emailErr) {
+      ignoreNonCriticalEmailFailure(emailErr, 'Additional fee notice email');
+    }
     await createNotification(reqRows[0].citizen_id, 'Additional Fee Required', `₹${amount} additional fee required for ${reqRows[0].registration_number}.`, 'rti_request', req.params.id);
 
     res.json({ success: true, message: 'Additional fee request raised.', data: rows[0] });

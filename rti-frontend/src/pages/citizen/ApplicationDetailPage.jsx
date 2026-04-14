@@ -1,6 +1,7 @@
 import React from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { ArrowLeft, ArrowRight, Wallet } from 'lucide-react';
 import Layout from '../../components/common/Layout';
 import api from '../../utils/api';
 import StatusBadge from '../../components/common/StatusBadge';
@@ -17,12 +18,18 @@ export default function ApplicationDetailPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="page-header">
-          <h1 className="page-title">Application Details</h1>
+        <div className="hero-card">
+          <div>
+            <h1 className="hero-card__title">Application Details</h1>
+            <p className="hero-card__text">
+              Loading your RTI record, status, and next steps.
+            </p>
+          </div>
         </div>
-        <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-          Loading…
-        </p>
+        <div className="state-panel">
+          <div className="state-panel__title">Fetching application details</div>
+          <p className="state-panel__text">This usually takes only a moment.</p>
+        </div>
       </Layout>
     );
   }
@@ -30,44 +37,60 @@ export default function ApplicationDetailPage() {
   if (isError || !data) {
     return (
       <Layout>
-        <div className="page-header">
-          <h1 className="page-title">Application Details</h1>
+        <div className="hero-card">
+          <div>
+            <h1 className="hero-card__title">Application Details</h1>
+            <p className="hero-card__text">
+              We could not load this RTI application right now.
+            </p>
+          </div>
         </div>
-        <p style={{ fontSize: 13, color: 'var(--color-error)' }}>
-          Could not load this application.
-        </p>
+        <div className="state-panel state-panel--error">
+          <div className="state-panel__title">Application unavailable</div>
+          <p className="state-panel__text">
+            Please return to your applications list and try opening it again.
+          </p>
+        </div>
       </Layout>
     );
   }
 
   const req = data;
-  const timeline = req.timeline || []; // backend can provide an array of events
+  const timeline = req.timeline || [];
   const canAppeal = req.can_appeal;
   const canPay = req.status === 'payment_pending';
 
   return (
     <Layout>
-      <div className="page-header">
+      <div className="hero-card">
         <div>
-          <h1 className="page-title">Application Details</h1>
-          <p className="page-subtitle">
-            Registration No: {req.registration_number}
+          <h1 className="hero-card__title">Application Details</h1>
+          <p className="hero-card__text">
+            Review the current status, response timeline, and next available
+            action for this RTI application.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="hero-card__meta">
+          <span className="meta-chip">Reference: {req.registration_number || 'Draft'}</span>
+          <span className="meta-chip">Status: {req.status}</span>
+        </div>
+      </div>
+
+      <div className="page-header">
+        <div />
+        <div className="stack-actions">
           {canAppeal && (
             <Link to={`/applications/${req.id}/appeal`} className="btn btn-primary">
               File Appeal
             </Link>
           )}
           <Link to="/applications" className="btn btn-secondary">
-            ← Back to list
+            <ArrowLeft size={16} /> Back to list
           </Link>
         </div>
       </div>
 
       <div className="detail-grid">
-        {/* Left: details */}
         <div className="card">
           <div className="card__header">
             <h2 className="card__title">Summary</h2>
@@ -94,7 +117,7 @@ export default function ApplicationDetailPage() {
                       month: 'short',
                       year: 'numeric',
                     })
-                  : '—'}
+                  : '-'}
               </strong>
             </div>
             <div className="detail-row">
@@ -106,7 +129,7 @@ export default function ApplicationDetailPage() {
                       month: 'short',
                       year: 'numeric',
                     })
-                  : '—'}
+                  : '-'}
               </strong>
             </div>
             <div className="detail-row">
@@ -115,41 +138,31 @@ export default function ApplicationDetailPage() {
                 {req.is_bpl
                   ? 'Waived (BPL)'
                   : req.fee_status === 'paid'
-                  ? 'Paid'
-                  : 'Not paid'}
+                    ? 'Paid'
+                    : 'Not paid'}
               </strong>
             </div>
           </div>
         </div>
 
-        {/* Right: actions / info */}
         <div className="card">
           <div className="card__header">
             <h2 className="card__title">Actions</h2>
           </div>
-          <div style={{ padding: '12px 16px 16px' }}>
+          <div className="card__body">
             {canPay && (
               <button
                 className="btn btn-primary btn-full"
                 onClick={() => {
-                  // later: integrate payment flow
                   alert('Payment flow to be integrated with backend.');
                 }}
               >
+                <Wallet size={16} />
                 Pay Fee Online
               </button>
             )}
-            {!canPay && (
-              <p
-                style={{
-                  fontSize: 13,
-                  color: 'var(--color-text-muted)',
-                  marginBottom: 8,
-                }}
-              >
-                No pending fee payment for this application.
-              </p>
-            )}
+            {!canPay && <p className="section-note">No pending fee payment for this application.</p>}
+
             {canAppeal && (
               <div className="info-box info-box--warning" style={{ marginTop: 10 }}>
                 You can file an appeal if the response is delayed or unsatisfactory.
@@ -160,65 +173,52 @@ export default function ApplicationDetailPage() {
                 Appeal is not currently available for this application.
               </div>
             )}
+
+            <div className="helper-list">
+              <div className="helper-item">
+                <strong>What to keep handy</strong>
+                <span>
+                  Save your registration number and check the timeline regularly for
+                  updates, fees, or response notes.
+                </span>
+              </div>
+              <Link to="/track" className="action-link">
+                <div>
+                  <strong>Track by reference</strong>
+                  <span>Open the public status tracker for quick sharing or checks.</span>
+                </div>
+                <ArrowRight size={16} />
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Information sought and responses */}
       <div className="card">
         <div className="card__header">
           <h2 className="card__title">Information Sought & Response</h2>
         </div>
-        <div style={{ padding: '14px 18px 18px', fontSize: 13 }}>
-          <p style={{ fontWeight: 600, marginBottom: 6 }}>Information Sought</p>
-          <pre
-            style={{
-              whiteSpace: 'pre-wrap',
-              fontFamily: 'inherit',
-              lineHeight: 1.7,
-            }}
-          >
-            {req.information_sought}
-          </pre>
+        <div className="detail-highlight">
+          <p style={{ fontWeight: 700, marginBottom: 6 }}>Information Sought</p>
+          <pre>{req.information_sought}</pre>
 
           {req.cpio_response && (
             <>
-              <hr
-                style={{
-                  border: 'none',
-                  borderTop: '1px solid var(--color-divider)',
-                  margin: '14px 0',
-                }}
-              />
-              <p style={{ fontWeight: 600, marginBottom: 6 }}>CPIO Response</p>
-              <pre
-                style={{
-                  whiteSpace: 'pre-wrap',
-                  fontFamily: 'inherit',
-                  lineHeight: 1.7,
-                }}
-              >
-                {req.cpio_response}
-              </pre>
+              <div style={{ height: 1, background: 'var(--color-divider)', margin: '16px 0' }} />
+              <p style={{ fontWeight: 700, marginBottom: 6 }}>CPIO Response</p>
+              <pre>{req.cpio_response}</pre>
             </>
           )}
         </div>
       </div>
 
-      {/* Timeline */}
       <div className="card">
         <div className="card__header">
           <h2 className="card__title">Timeline</h2>
         </div>
         <div className="timeline">
           {!timeline.length && (
-            <p
-              style={{
-                padding: '6px 0 10px',
-                fontSize: 13,
-                color: 'var(--color-text-muted)',
-              }}
-            >
+            <p className="section-note" style={{ padding: '6px 0 10px' }}>
               No timeline events recorded yet.
             </p>
           )}

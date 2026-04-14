@@ -58,35 +58,41 @@ export default function LoginPage() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: 'var(--color-bg)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          maxWidth: 420,
-          background: 'var(--color-surface-2, #fff)',
-          borderRadius: 12,
-          border: '1px solid var(--color-border, #e0e0e0)',
-          boxShadow: 'var(--shadow-md, 0 4px 12px rgba(0,0,0,0.06))',
-          padding: 24,
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: 20 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>
-            RTI Portal Login
-          </h1>
-          <p style={{ fontSize: 13, color: 'var(--color-text-muted)' }}>
-            Sign in with email and one-time password (OTP)
-          </p>
-        </div>
+    <div className="public-shell">
+      <div className="public-card">
+        <section className="public-card__hero">
+          <div>
+            <span className="eyebrow">Secure Sign In</span>
+            <h1>Return to your RTI dashboard in seconds.</h1>
+            <p>
+              Access application drafts, track deadlines, and review replies
+              through a simple OTP-based login designed for citizens.
+            </p>
+          </div>
+          <div className="public-card__hero-list">
+            <div className="public-card__hero-item">
+              <strong>01</strong>
+              <span>Login without passwords using a one-time code.</span>
+            </div>
+            <div className="public-card__hero-item">
+              <strong>02</strong>
+              <span>Review all requests, payments, and appeal actions in one place.</span>
+            </div>
+            <div className="public-card__hero-item">
+              <strong>03</strong>
+              <span>Local OTP fallback keeps testing moving when email is unavailable.</span>
+            </div>
+          </div>
+        </section>
+        <section className="public-card__content">
+          <div style={{ marginBottom: 20 }}>
+            <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 34, marginBottom: 8 }}>
+              Login to RTI Portal
+            </h2>
+            <p style={{ fontSize: 14, color: 'var(--color-text-muted)' }}>
+              Sign in with your email and one-time password.
+            </p>
+          </div>
 
         {step === 0 && (
           <form onSubmit={handleSubmit(onSendOtp)}>
@@ -173,6 +179,7 @@ export default function LoginPage() {
             </button>
           </form>
         )}
+        </section>
       </div>
     </div>
   );
