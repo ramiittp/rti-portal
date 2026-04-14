@@ -68,6 +68,102 @@ router.get('/requests/:id', async (req, res) => {
   }
 });
 
+// Update Processing status
+router.put('/requests/:id/status', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, rejection_reason } = req.body;
+
+    const { rows } = await db.query(
+      `UPDATE rti_requests SET status = $1, rejection_reason = $2, updated_at = NOW() WHERE id = $3 RETURNING *`,
+      [status, rejection_reason || null, id]
+    );
+
+    if (!rows[0]) return res.status(404).json({ success: false, message: 'Request not found' });
+    res.json({ success: true, data: rows[0], message: 'Status updated successfully' });
+  } catch (err) {
+    console.error('Error updating status:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+// Draft and send response
+router.put('/requests/:id/reply', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { response_text } = req.body;
+
+    const { rows } = await db.query(
+      `UPDATE rti_requests SET response_text = $1, response_date = NOW(), status = 'replied', updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [response_text, id]
+    );
+
+    if (!rows[0]) return res.status(404).json({ success: false, message: 'Request not found' });
+    res.json({ success: true, data: rows[0], message: 'Response drafted and sent' });
+  } catch (err) {
+    console.error('Error sending response:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+// Manage deadlines
+router.put('/requests/:id/deadline', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { extended_deadline, extension_reason } = req.body;
+
+    const { rows } = await db.query(
+      `UPDATE rti_requests SET extended_deadline = $1, extension_reason = $2, updated_at = NOW() WHERE id = $3 RETURNING *`,
+      [extended_deadline, extension_reason, id]
+    );
+
+    if (!rows[0]) return res.status(404).json({ success: false, message: 'Request not found' });
+    res.json({ success: true, data: rows[0], message: 'Deadline updated successfully' });
+  } catch (err) {
+    console.error('Error updating deadline:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+// Internal notes / comments
+const { v4: uuidv4 } = require('uuid');
+router.post('/requests/:id/notes', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { note_text } = req.body;
+
+    const { rows } = await db.query(
+      `INSERT INTO audit_log (id, entity_type, entity_id, action, new_value, created_at)
+       VALUES ($1, 'rti_request', $2, 'INTERNAL_NOTE', $3, NOW()) RETURNING *`,
+      [uuidv4(), id, JSON.stringify({ note: note_text })]
+    );
+
+    res.json({ success: true, data: rows[0], message: 'Internal note added' });
+  } catch (err) {
+    console.error('Error adding internal note:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+// Set Quality Score
+router.put('/requests/:id/quality', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { quality_score } = req.body;
+
+    const { rows } = await db.query(
+      `UPDATE rti_requests SET quality_score = $1, updated_at = NOW() WHERE id = $2 RETURNING *`,
+      [quality_score, id]
+    );
+
+    if (!rows[0]) return res.status(404).json({ success: false, message: 'Request not found' });
+    res.json({ success: true, data: rows[0], message: 'Quality score updated' });
+  } catch (err) {
+    console.error('Error updating quality score:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
 module.exports = router;
 
 

@@ -36,6 +36,7 @@ router.put('/:id',
 
 router.post('/:id/submit', ctrl.submitRequest);
 router.get('/', ctrl.listRequests);
+router.get('/summary', ctrl.getSummary);
 router.get('/:id', ctrl.getRequest);
 router.get('/:id/status', ctrl.getStatus);
 

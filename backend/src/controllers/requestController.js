@@ -199,4 +199,32 @@ const trackByRegNumber = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
-module.exports = { createRequest, updateRequest, submitRequest, listRequests, getRequest, getStatus, trackByRegNumber };
+// GET /api/requests/summary — get citizen request summary
+const getSummary = async (req, res, next) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT 
+        COUNT(*) AS total_requests,
+        COUNT(*) FILTER (WHERE status = 'replied' OR status = 'rejected') AS answered,
+        COUNT(*) FILTER (WHERE status IN ('draft', 'submitted', 'payment_pending', 'under_review', 'under_process', 'assigned', 'transferred', 'additional_fee_pending')) AS pending,
+        COUNT(*) FILTER (WHERE status = 'appealed') AS appeals
+      FROM rti_requests
+      WHERE citizen_id = $1
+    `, [req.user.id]);
+
+    const summary = rows[0];
+    res.json({ 
+      success: true, 
+      data: {
+        total_requests: parseInt(summary?.total_requests || 0),
+        answered: parseInt(summary?.answered || 0),
+        pending: parseInt(summary?.pending || 0),
+        appeals: parseInt(summary?.appeals || 0)
+      } 
+    });
+  } catch (err) { 
+    next(err); 
+  }
+};
+
+module.exports = { createRequest, updateRequest, submitRequest, listRequests, getRequest, getStatus, trackByRegNumber, getSummary };

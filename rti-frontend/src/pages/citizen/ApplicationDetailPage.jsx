@@ -202,11 +202,11 @@ export default function ApplicationDetailPage() {
           <p style={{ fontWeight: 700, marginBottom: 6 }}>Information Sought</p>
           <pre>{req.information_sought}</pre>
 
-          {req.cpio_response && (
+          {req.response_text && (
             <>
               <div style={{ height: 1, background: 'var(--color-divider)', margin: '16px 0' }} />
               <p style={{ fontWeight: 700, marginBottom: 6 }}>CPIO Response</p>
-              <pre>{req.cpio_response}</pre>
+              <pre>{req.response_text}</pre>
             </>
           )}
         </div>
