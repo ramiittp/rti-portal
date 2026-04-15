@@ -295,4 +295,73 @@ router.post('/requests/:id/additional-fee', async (req, res) => {
   }
 });
 
+// ==========================================
+// USER MANAGEMENT ENDPOINTS (Super Admin)
+// ==========================================
+
+// GET /api/admin/users
+router.get('/users', async (req, res) => {
+  try {
+    const { rows } = await db.query(`
+      SELECT u.id, u.full_name, u.email, u.role, u.is_active, pa.name as authority_name, u.authority_id 
+      FROM users u
+      LEFT JOIN public_authorities pa ON u.authority_id = pa.id
+      ORDER BY u.created_at DESC
+    `);
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error('Error fetching users:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+// POST /api/admin/users
+router.post('/users', async (req, res) => {
+  try {
+    const { email, full_name, role, authority_id } = req.body;
+    if (!email || !full_name || !role) {
+      return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
+    const { rows } = await db.query(
+      `INSERT INTO users (id, email, full_name, role, authority_id)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id, email, full_name, role, authority_id`,
+      [uuidv4(), email.toLowerCase().trim(), full_name, role, authority_id || null]
+    );
+
+    res.json({ success: true, data: rows[0], message: 'User created successfully' });
+  } catch (err) {
+    if (err.code === '23505') { // Unique violation
+      return res.status(409).json({ success: false, message: 'Email already exists' });
+    }
+    console.error('Error creating user:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
+// PUT /api/admin/users/:id
+router.put('/users/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role, authority_id, is_active } = req.body;
+
+    const { rows } = await db.query(
+      `UPDATE users 
+       SET role = COALESCE($1, role), 
+           authority_id = $2,
+           is_active = COALESCE($3, is_active),
+           updated_at = NOW() 
+       WHERE id = $4 RETURNING id, full_name, email, role, authority_id, is_active`,
+      [role, authority_id || null, is_active, id]
+    );
+
+    if (!rows[0]) return res.status(404).json({ success: false, message: 'User not found' });
+    res.json({ success: true, data: rows[0], message: 'User updated successfully' });
+  } catch (err) {
+    console.error('Error updating user:', err);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+});
+
 module.exports = router;

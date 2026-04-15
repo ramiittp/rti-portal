@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { LogOut, FileText, BarChart3, Inbox } from 'lucide-react';
+import { LogOut, FileText, BarChart3, Inbox, Users } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
   const { user, logout } = useAuth();
@@ -117,6 +117,24 @@ export default function AdminLayout({ children }) {
           >
             <BarChart3 size={16} /> Analytics
           </NavLink>
+          {user?.role === 'super_admin' && (
+            <NavLink
+              to="/admin/users"
+              style={({ isActive }) => ({
+                padding: '8px 10px',
+                borderRadius: 999,
+                fontSize: 13,
+                textDecoration: 'none',
+                color: isActive ? '#111827' : '#e5e7eb',
+                background: isActive ? '#10b981' : 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              })}
+            >
+              <Users size={16} /> User Management
+            </NavLink>
+          )}
         </nav>
 
         <div style={{ flex: 1 }} />
